@@ -62,7 +62,6 @@ func TestExpiresFromHeader(t *testing.T) {
 }
 
 func TestAgeFromHeader(t *testing.T) {
-
 	_, err := ageFromHeader(nil)
 	assert.Error(t, err)
 

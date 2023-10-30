@@ -23,9 +23,9 @@ func TestFreshnessFromMaxAge(t *testing.T) {
 }
 
 func TestFreshnessFromAge(t *testing.T) {
-	assert.Equal(t, FreshnesTransparent, freshnessFromAge(100, 100, time.Now().Add(-3*time.Minute)))
-	assert.Equal(t, FreshnessFresh, freshnessFromAge(10, 100, time.Now().Add(-1*time.Minute)))
-	assert.Equal(t, FreshnessStale, freshnessFromAge(40, 100, time.Now().Add(-1*time.Minute)))
+	assert.Equal(t, FreshnessStale, freshnessFromAge(100, 100))
+	assert.Equal(t, FreshnessFresh, freshnessFromAge(10, 100))
+	assert.Equal(t, FreshnessStale, freshnessFromAge(120, 100))
 
 }
 
