@@ -81,8 +81,19 @@ func TestAgeFromHeader(t *testing.T) {
 
 func TestCacheControl(t *testing.T) {
 	header := make(http.Header)
-	header.Add("Cache-Control", "max-age=100")
+	header.Add("Cache-Control", "max-age=100, public")
 	cc := newCacheControl(header)
+
 	age, _ := cc.MaxAge()
 	assert.Equal(t, 100, age)
+	assert.True(t, cc.Public())
+	assert.False(t, cc.Private())
+
+	header = make(http.Header)
+	header.Add("Cache-Control", "max-age=100, private")
+	cc = newCacheControl(header)
+	age, _ = cc.MaxAge()
+	assert.Equal(t, 100, age)
+	assert.False(t, cc.Public())
+	assert.True(t, cc.Private())
 }

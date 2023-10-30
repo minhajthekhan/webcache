@@ -22,7 +22,9 @@ var (
 type cacheControlKey string
 
 var (
-	cacheControlKeyMaxAge = cacheControlKey("max-age")
+	cacheControlKeyMaxAge  = cacheControlKey("max-age")
+	cacheControlKeyPublic  = cacheControlKey("public")
+	cacheControlKeyPrivate = cacheControlKey("private")
 )
 
 type CacheControl map[cacheControlKey]string
@@ -37,6 +39,16 @@ func (c CacheControl) MaxAge() (int, error) {
 		return 0, ErrorInvalidMaxAge
 	}
 	return maxAge, nil
+}
+
+func (c CacheControl) Public() bool {
+	_, ok := c[cacheControlKeyPublic]
+	return ok
+}
+
+func (c CacheControl) Private() bool {
+	_, ok := c[cacheControlKeyPrivate]
+	return ok
 }
 
 func ageFromHeader(h http.Header) (int, error) {
@@ -74,13 +86,17 @@ func timeFromHeader(h http.Header, key string) (time.Time, error) {
 func newCacheControl(h http.Header) CacheControl {
 	cc := CacheControl{}
 	for k, v := range h {
-		if k == "Cache-Control" {
-			for _, vv := range v {
-				for _, vvv := range splitCacheControl(vv) {
-					kv := splitCacheControlKeyValue(vvv)
-					if len(kv) == 2 {
-						cc[cacheControlKey(kv[0])] = kv[1]
-					}
+		if k != "Cache-Control" {
+			continue
+		}
+		for _, vv := range v {
+			for _, vvv := range splitCacheControl(vv) {
+				kv := splitCacheControlKeyValue(vvv)
+				if len(kv) == 2 {
+					cc[cacheControlKey(kv[0])] = kv[1]
+				}
+				if len(kv) == 1 {
+					cc[cacheControlKey(kv[0])] = ""
 				}
 			}
 		}
@@ -88,9 +104,9 @@ func newCacheControl(h http.Header) CacheControl {
 	return cc
 }
 func splitCacheControl(s string) []string {
-	return strings.Split(s, ",")
+	return strings.Split(strings.TrimSpace(s), ",")
 }
 
 func splitCacheControlKeyValue(s string) []string {
-	return strings.Split(s, "=")
+	return strings.Split(strings.TrimSpace(s), "=")
 }
