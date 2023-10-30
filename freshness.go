@@ -53,22 +53,20 @@ func freshnessFromAge(age int, maxAge int) Freshness {
 	return FreshnessStale
 }
 
-// steps to check the freshness of a response:
-// 1. check if the response is cacheable
-// 2. check if the response is fresh based on max-age
-// 3. check if the response is fresh based on expires
-// 4. check if the response is fresh based on age
-// 5. if none of the above, the response is stale
-
 type freshnessChecker interface {
-	Check(header http.Header, cacheControlHeader CacheControl) (Freshness, error)
+	Freshness(header http.Header, cacheControlHeader CacheControl) (Freshness, error)
 }
 
-func NewFreshnerChecker() freshnessChecker {
-	return maxAgeFreshnessChecker{
-		expireFreshnessChecker{
-			ageFreshnessChecker{
-				transparentFreshnessChecker{},
+// Steps to check the freshness of a response:
+// 1. check if the response is fresh based on age and max-age
+// 2. check if the response is fresh based on max-age
+// 3. check if the response is fresh based on expires
+// 4. if none of the above, the response is stale
+func newFreshnerChecker() freshnessChecker {
+	return ageFreshnessChecker{
+		maxAgeFreshnessChecker{
+			expireFreshnessChecker{
+				transparentFreshness{},
 			},
 		},
 	}
@@ -78,15 +76,15 @@ type maxAgeFreshnessChecker struct {
 	next freshnessChecker
 }
 
-func (c maxAgeFreshnessChecker) Check(header http.Header, cacheControlHeader CacheControl) (Freshness, error) {
+func (c maxAgeFreshnessChecker) Freshness(header http.Header, cacheControlHeader CacheControl) (Freshness, error) {
 	maxAge, err := cacheControlHeader.MaxAge()
 	if err != nil {
-		return c.next.Check(header, cacheControlHeader)
+		return c.next.Freshness(header, cacheControlHeader)
 	}
 
 	date, err := dateFromHeader(header)
 	if err != nil {
-		return c.next.Check(header, cacheControlHeader)
+		return c.next.Freshness(header, cacheControlHeader)
 	}
 
 	return freshnessFromMaxAge(maxAge, date), nil
@@ -96,15 +94,15 @@ type expireFreshnessChecker struct {
 	next freshnessChecker
 }
 
-func (c expireFreshnessChecker) Check(header http.Header, cacheControlHeader CacheControl) (Freshness, error) {
+func (c expireFreshnessChecker) Freshness(header http.Header, cacheControlHeader CacheControl) (Freshness, error) {
 	expires, err := expiresFromHeader(header)
 	if err != nil {
-		return c.next.Check(header, cacheControlHeader)
+		return c.next.Freshness(header, cacheControlHeader)
 	}
 
 	date, err := dateFromHeader(header)
 	if err != nil {
-		return c.next.Check(header, cacheControlHeader)
+		return c.next.Freshness(header, cacheControlHeader)
 	}
 
 	return freshnessFromExpire(expires, date), nil
@@ -114,23 +112,23 @@ type ageFreshnessChecker struct {
 	next freshnessChecker
 }
 
-func (c ageFreshnessChecker) Check(header http.Header, cacheControlHeader CacheControl) (Freshness, error) {
+func (c ageFreshnessChecker) Freshness(header http.Header, cacheControlHeader CacheControl) (Freshness, error) {
 
 	maxAge, err := cacheControlHeader.MaxAge()
 	if err != nil {
-		return c.next.Check(header, cacheControlHeader)
+		return c.next.Freshness(header, cacheControlHeader)
 	}
 
 	age, err := ageFromHeader(header)
 	if err != nil {
-		return c.next.Check(header, cacheControlHeader)
+		return c.next.Freshness(header, cacheControlHeader)
 	}
 
 	return freshnessFromAge(age, maxAge), nil
 }
 
-type transparentFreshnessChecker struct{}
+type transparentFreshness struct{}
 
-func (c transparentFreshnessChecker) Check(header http.Header, cacheControlHeader CacheControl) (Freshness, error) {
+func (c transparentFreshness) Freshness(header http.Header, cacheControlHeader CacheControl) (Freshness, error) {
 	return FreshnesTransparent, nil
 }
