@@ -1,6 +1,9 @@
 package webcache
 
-import "net/http"
+import (
+	"context"
+	"net/http"
+)
 
 type Transport struct {
 	clock            Clock
@@ -35,48 +38,50 @@ func (t *Transport) RoundTrip(r *http.Request) (*http.Response, error) {
 	// check if we have this request in the cache
 	ctx := r.Context()
 	response, ok := t.cache.Get(r)
-	// if it does exist in the cache
 	if ok {
-		cacheControl := newCacheControl(response.Header)
+		return t.handleCachedResponse(ctx, response, r)
+	}
+	return nil, nil
+}
 
-		// we check if the response is still fresh, if it is, we return it
-		freshness, err := t.freshnessChecker.Freshness(ctx, response.Header, cacheControl)
+func (t *Transport) handleCachedResponse(ctx context.Context, response *http.Response, r *http.Request) (*http.Response, error) {
+	cacheControl := newCacheControl(response.Header)
+
+	// we check if the response is still fresh, if it is, we return it
+	freshness, err := t.freshnessChecker.Freshness(ctx, response.Header, cacheControl)
+	if err != nil {
+		return nil, err
+	}
+
+	switch freshness {
+	case FreshnessFresh:
+		response.Header = withCacheHitHeader(response.Header)
+		return response, nil
+
+	case FreshnessStale:
+		// if the response is stale, we check if we can validate it
+		validator := newResponseValidator(t.rt)
+		response, err := validator.Validate(response, r)
 		if err != nil {
 			return nil, err
 		}
 
-		switch freshness {
-		case FreshnessFresh:
-			response.Header = withCacheHitHeader(response.Header)
+		// if caching is not allowed, we delete the response from the cache
+		if cacheControl.NoStore() {
+			t.cache.Delete(r)
 			return response, nil
-
-		case FreshnessStale:
-			// if the response is stale, we check if we can validate it
-			validator := newResponseValidator(t.rt)
-			response, err := validator.Validate(response, r)
-			if err != nil {
-				return nil, err
-			}
-
-			// if caching is not allowed, we delete the response from the cache
-			if cacheControl.NoStore() {
-				t.cache.Delete(r)
-				return response, nil
-			}
-
-			// if the validator returned a cached response, we return it
-			if isCached(response) {
-				return response, nil
-			}
-
-			// otherwise, we cache the response and return it
-			t.cache.Set(r, response)
-			return response, nil
-
-		case FreshnesTransparent:
-		default:
-			return t.rt.RoundTrip(r)
 		}
+
+		// if the validator returned a cached response, we return it
+		if isCached(response) {
+			return response, nil
+		}
+
+		// otherwise, we cache the response and return it
+		t.cache.Set(r, response)
+		return response, nil
+
+	default:
+		return t.rt.RoundTrip(r)
 	}
-	return nil, nil
 }
