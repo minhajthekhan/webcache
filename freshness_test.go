@@ -10,6 +10,7 @@ import (
 )
 
 func TestFreshnessFromMaxAge(t *testing.T) {
+
 	ageInSeconds := 100
 	responseDated := time.Now().Add(-3 * time.Minute)
 	assert.Equal(t, FreshnessStale, freshnessFromMaxAge(ageInSeconds, responseDated, NewClock()))
@@ -21,6 +22,10 @@ func TestFreshnessFromMaxAge(t *testing.T) {
 	ageInSeconds = 100
 	responseDated = time.Now().Add(-1 * time.Minute)
 	assert.Equal(t, FreshnessFresh, freshnessFromMaxAge(ageInSeconds, responseDated, NewClock()))
+
+	ageInSeconds = 0
+	responseDated = time.Now().Add(-1 * time.Minute)
+	assert.Equal(t, FreshnessStale, freshnessFromMaxAge(ageInSeconds, responseDated, NewClock()))
 }
 
 func TestFreshnessFromAge(t *testing.T) {
@@ -37,7 +42,6 @@ func TestFreshnessFromExpire(t *testing.T) {
 }
 
 func TestFreshness(t *testing.T) {
-
 	ctx := context.Background()
 	headers := make(http.Header)
 	headers.Add("Cache-Control", "max-age=120")
@@ -64,5 +68,4 @@ func TestFreshness(t *testing.T) {
 	freshness, err = checker.Freshness(ctx, headers, cacheControl)
 	assert.NoError(t, err)
 	assert.Equal(t, FreshnesTransparent, freshness)
-
 }
