@@ -31,12 +31,10 @@ const (
 // freshnessFromMaxAge returns the freshness of the response based on the max-age value.
 // https://developer.mozilla.org/en-US/docs/Web/HTTP/Caching#fresh_and_stale_based_on_age
 func freshnessFromMaxAge(maxAge int, responseDated time.Time, clock Clock) Freshness {
-	if maxAge < 0 {
+	if maxAge <= 0 {
 		return FreshnessStale
 	}
-	if maxAge == 0 {
-		return FreshnesTransparent
-	}
+
 	if responseDated.IsZero() {
 		return FreshnessStale
 	}
