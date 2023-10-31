@@ -23,8 +23,14 @@ func (c realClock) Now() time.Time {
 type Freshness int
 
 const (
+	// FreshnessFresh
+	// The fresh state indicates that the response is still valid and can be reused
 	FreshnessFresh Freshness = iota
+	// FreshnessStale
+	// the stale state means that the cached response has already expired.
 	FreshnessStale
+	// FreshnesTransparent
+	// the transparent state means that the response is not cacheable
 	FreshnesTransparent
 )
 
