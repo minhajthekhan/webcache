@@ -5,21 +5,23 @@ import "net/http"
 type Transport struct {
 	clock            Clock
 	cache            HTTPCache
-	next             http.RoundTripper
+	rt               http.RoundTripper
 	freshnessChecker freshnessChecker
-}
-
-type RoundTripperOption struct {
-	Clock Clock
 }
 
 type TransportOption func(*Transport)
 
+func WithClock(c Clock) TransportOption {
+	return func(t *Transport) {
+		t.clock = c
+	}
+}
+
 // NewRoundTripper
-func NewTransport(cache Cache, next http.RoundTripper, opts ...TransportOption) *Transport {
+func NewTransport(cache Cache, rt http.RoundTripper, opts ...TransportOption) *Transport {
 	t := &Transport{
 		cache: NewHTTPCache(cache),
-		next:  next,
+		rt:    rt,
 		clock: NewClock(),
 	}
 	for _, o := range opts {
@@ -42,8 +44,28 @@ func (t *Transport) RoundTrip(r *http.Request) (*http.Response, error) {
 		if err != nil {
 			return nil, err
 		}
-		if freshness == FreshnessFresh {
+
+		switch freshness {
+		case FreshnesTransparent:
+			return t.rt.RoundTrip(r)
+
+		case FreshnessFresh:
 			response.Header = withCacheHitHeader(response.Header)
+			return response, nil
+
+		case FreshnessStale:
+			// if the response is stale, we check if we can validate it
+			validator := newResponseValidator(t.rt)
+			response, err := validator.Validate(response, r)
+			if err != nil {
+				return nil, err
+			}
+			if IsCached(response) {
+				return response, nil
+			}
+
+			// if the response is not cached, we update the cache
+			t.cache.Set(r, response)
 			return response, nil
 		}
 	}

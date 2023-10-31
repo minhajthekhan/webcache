@@ -17,7 +17,7 @@ func TestTransportIfRequestExistsInCache(t *testing.T) {
 	r, err := http.NewRequest(http.MethodGet, "http://example.com", nil)
 	cache.Set(buildCacheKey(r), &resp)
 
-	roundTripper := NewTransport(cache, http.DefaultTransport)
+	roundTripper := NewTransport(cache, http.DefaultTransport, WithClock(NewClock()))
 	assert.NoError(t, err)
 
 	response, err := roundTripper.RoundTrip(r)
@@ -25,3 +25,5 @@ func TestTransportIfRequestExistsInCache(t *testing.T) {
 	assert.Equal(t, response.StatusCode, http.StatusOK)
 	assert.Equal(t, "HIT", response.Header.Get("X-Cache"))
 }
+
+// TODO:: add tests for freshness
