@@ -1,6 +1,7 @@
 package webcache
 
 import (
+	"context"
 	"net/http"
 	"testing"
 	"time"
@@ -36,12 +37,14 @@ func TestFreshnessFromExpire(t *testing.T) {
 }
 
 func TestFreshness(t *testing.T) {
+
+	ctx := context.Background()
 	headers := make(http.Header)
 	headers.Add("Cache-Control", "max-age=120")
 	headers.Add("Date", time.Now().Add(-1*time.Minute).Format(time.RFC850))
 	cacheControl := newCacheControl(headers)
 	checker := newFreshnerChecker(NewClock())
-	freshness, err := checker.Freshness(headers, cacheControl)
+	freshness, err := checker.Freshness(ctx, headers, cacheControl)
 	assert.NoError(t, err)
 	assert.Equal(t, FreshnessFresh, freshness)
 
@@ -50,7 +53,7 @@ func TestFreshness(t *testing.T) {
 	headers.Add("Date", time.Now().Add(-1*time.Minute).Format(time.RFC850))
 	cacheControl = newCacheControl(headers)
 	checker = newFreshnerChecker(NewClock())
-	freshness, err = checker.Freshness(headers, cacheControl)
+	freshness, err = checker.Freshness(ctx, headers, cacheControl)
 	assert.NoError(t, err)
 	assert.Equal(t, FreshnessStale, freshness)
 
@@ -58,7 +61,7 @@ func TestFreshness(t *testing.T) {
 	headers.Add("Date", time.Now().Add(-1*time.Minute).Format(time.RFC850))
 	cacheControl = newCacheControl(headers)
 	checker = newFreshnerChecker(NewClock())
-	freshness, err = checker.Freshness(headers, cacheControl)
+	freshness, err = checker.Freshness(ctx, headers, cacheControl)
 	assert.NoError(t, err)
 	assert.Equal(t, FreshnesTransparent, freshness)
 

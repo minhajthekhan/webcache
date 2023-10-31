@@ -1,6 +1,7 @@
 package webcache
 
 import (
+	"context"
 	"net/http"
 	"time"
 )
@@ -68,7 +69,7 @@ func freshnessFromAge(age int, maxAge int) Freshness {
 }
 
 type freshnessChecker interface {
-	Freshness(header http.Header, cacheControlHeader CacheControl) (Freshness, error)
+	Freshness(ctx context.Context, header http.Header, cacheControlHeader CacheControl) (Freshness, error)
 }
 
 // Steps to check the freshness of a response:
@@ -92,15 +93,15 @@ type maxAgeFreshnessChecker struct {
 	clock Clock
 }
 
-func (c maxAgeFreshnessChecker) Freshness(header http.Header, cacheControlHeader CacheControl) (Freshness, error) {
+func (c maxAgeFreshnessChecker) Freshness(ctx context.Context, header http.Header, cacheControlHeader CacheControl) (Freshness, error) {
 	maxAge, err := cacheControlHeader.MaxAge()
 	if err != nil {
-		return c.next.Freshness(header, cacheControlHeader)
+		return c.next.Freshness(ctx, header, cacheControlHeader)
 	}
 
 	date, err := dateFromHeader(header)
 	if err != nil {
-		return c.next.Freshness(header, cacheControlHeader)
+		return c.next.Freshness(ctx, header, cacheControlHeader)
 	}
 
 	return freshnessFromMaxAge(maxAge, date, c.clock), nil
@@ -110,15 +111,15 @@ type expireFreshnessChecker struct {
 	next freshnessChecker
 }
 
-func (c expireFreshnessChecker) Freshness(header http.Header, cacheControlHeader CacheControl) (Freshness, error) {
+func (c expireFreshnessChecker) Freshness(ctx context.Context, header http.Header, cacheControlHeader CacheControl) (Freshness, error) {
 	expires, err := expiresFromHeader(header)
 	if err != nil {
-		return c.next.Freshness(header, cacheControlHeader)
+		return c.next.Freshness(ctx, header, cacheControlHeader)
 	}
 
 	date, err := dateFromHeader(header)
 	if err != nil {
-		return c.next.Freshness(header, cacheControlHeader)
+		return c.next.Freshness(ctx, header, cacheControlHeader)
 	}
 
 	return freshnessFromExpire(expires, date), nil
@@ -128,16 +129,16 @@ type ageFreshnessChecker struct {
 	next freshnessChecker
 }
 
-func (c ageFreshnessChecker) Freshness(header http.Header, cacheControlHeader CacheControl) (Freshness, error) {
+func (c ageFreshnessChecker) Freshness(ctx context.Context, header http.Header, cacheControlHeader CacheControl) (Freshness, error) {
 
 	maxAge, err := cacheControlHeader.MaxAge()
 	if err != nil {
-		return c.next.Freshness(header, cacheControlHeader)
+		return c.next.Freshness(ctx, header, cacheControlHeader)
 	}
 
 	age, err := ageFromHeader(header)
 	if err != nil {
-		return c.next.Freshness(header, cacheControlHeader)
+		return c.next.Freshness(ctx, header, cacheControlHeader)
 	}
 
 	return freshnessFromAge(age, maxAge), nil
@@ -145,6 +146,6 @@ func (c ageFreshnessChecker) Freshness(header http.Header, cacheControlHeader Ca
 
 type transparentFreshness struct{}
 
-func (c transparentFreshness) Freshness(header http.Header, cacheControlHeader CacheControl) (Freshness, error) {
+func (c transparentFreshness) Freshness(ctx context.Context, header http.Header, cacheControlHeader CacheControl) (Freshness, error) {
 	return FreshnesTransparent, nil
 }
