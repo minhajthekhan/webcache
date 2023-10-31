@@ -18,7 +18,7 @@ func TestRoundTripperIfRequestExistsInCache(t *testing.T) {
 	r, err := http.NewRequest(http.MethodGet, "http://example.com", nil)
 	cache.Set(buildCacheKey(r), &resp)
 
-	roundTripper := NewRoundTripper(cache, http.DefaultTransport)
+	roundTripper := NewRoundTripper(cache, http.DefaultTransport, nil)
 	assert.NoError(t, err)
 
 	response, err := roundTripper.RoundTrip(r)

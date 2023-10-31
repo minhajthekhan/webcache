@@ -8,12 +8,26 @@ type httpCacheRoundTripper struct {
 	freshnessChecker freshnessChecker
 }
 
+type RoundTripperOption struct {
+	Clock Clock
+}
+
+type RoundTripperOptionFunc func(*RoundTripperOption)
+
 // NewRoundTripper
-func NewRoundTripper(cache Cache, next http.RoundTripper) http.RoundTripper {
+func NewRoundTripper(cache Cache, next http.RoundTripper, options *RoundTripperOption) http.RoundTripper {
+
+	clock := NewClock()
+	if options != nil {
+		if options.Clock != nil {
+			clock = options.Clock
+		}
+	}
+
 	return &httpCacheRoundTripper{
 		cache:            NewHTTPCache(cache),
 		next:             next,
-		freshnessChecker: newFreshnerChecker(),
+		freshnessChecker: newFreshnerChecker(clock),
 	}
 }
 

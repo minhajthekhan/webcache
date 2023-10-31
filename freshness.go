@@ -5,6 +5,20 @@ import (
 	"time"
 )
 
+type Clock interface {
+	Now() time.Time
+}
+
+type realClock struct{}
+
+func NewClock() Clock {
+	return realClock{}
+}
+
+func (c realClock) Now() time.Time {
+	return time.Now()
+}
+
 type Freshness int
 
 const (
@@ -15,7 +29,7 @@ const (
 
 // freshnessFromMaxAge returns the freshness of the response based on the max-age value.
 // https://developer.mozilla.org/en-US/docs/Web/HTTP/Caching#fresh_and_stale_based_on_age
-func freshnessFromMaxAge(maxAge int, responseDated time.Time) Freshness {
+func freshnessFromMaxAge(maxAge int, responseDated time.Time, clock Clock) Freshness {
 	if maxAge < 0 {
 		return FreshnessStale
 	}
@@ -25,7 +39,7 @@ func freshnessFromMaxAge(maxAge int, responseDated time.Time) Freshness {
 	if responseDated.IsZero() {
 		return FreshnessStale
 	}
-	if time.Now().After(responseDated.Add(time.Duration(maxAge) * time.Second)) {
+	if clock.Now().After(responseDated.Add(time.Duration(maxAge) * time.Second)) {
 		return FreshnessStale
 	}
 	return FreshnessFresh
@@ -62,18 +76,20 @@ type freshnessChecker interface {
 // 2. check if the response is fresh based on max-age
 // 3. check if the response is fresh based on expires
 // 4. if none of the above, the response is stale
-func newFreshnerChecker() freshnessChecker {
+func newFreshnerChecker(clock Clock) freshnessChecker {
 	return ageFreshnessChecker{
 		maxAgeFreshnessChecker{
-			expireFreshnessChecker{
+			next: expireFreshnessChecker{
 				transparentFreshness{},
 			},
+			clock: clock,
 		},
 	}
 }
 
 type maxAgeFreshnessChecker struct {
-	next freshnessChecker
+	next  freshnessChecker
+	clock Clock
 }
 
 func (c maxAgeFreshnessChecker) Freshness(header http.Header, cacheControlHeader CacheControl) (Freshness, error) {
@@ -87,7 +103,7 @@ func (c maxAgeFreshnessChecker) Freshness(header http.Header, cacheControlHeader
 		return c.next.Freshness(header, cacheControlHeader)
 	}
 
-	return freshnessFromMaxAge(maxAge, date), nil
+	return freshnessFromMaxAge(maxAge, date, c.clock), nil
 }
 
 type expireFreshnessChecker struct {
