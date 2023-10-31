@@ -46,9 +46,6 @@ func (t *Transport) RoundTrip(r *http.Request) (*http.Response, error) {
 		}
 
 		switch freshness {
-		case FreshnesTransparent:
-			return t.rt.RoundTrip(r)
-
 		case FreshnessFresh:
 			response.Header = withCacheHitHeader(response.Header)
 			return response, nil
@@ -60,13 +57,19 @@ func (t *Transport) RoundTrip(r *http.Request) (*http.Response, error) {
 			if err != nil {
 				return nil, err
 			}
-			if IsCached(response) {
+			// if the validator returned a cached response, we return it
+			if isCached(response) {
 				return response, nil
 			}
 
 			// if the response is not cached, we update the cache
+			// because the response is freshly recieved from the origin
 			t.cache.Set(r, response)
 			return response, nil
+
+		case FreshnesTransparent:
+		default:
+			return t.rt.RoundTrip(r)
 		}
 	}
 	return nil, nil

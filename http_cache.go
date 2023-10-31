@@ -31,6 +31,6 @@ func (c *httpCache) IsCachable(r *http.Request) bool {
 	return !cc.Private()
 }
 
-func IsCached(r *http.Response) bool {
+func isCached(r *http.Response) bool {
 	return r.Header.Get("X-Cache") == "HIT"
 }
