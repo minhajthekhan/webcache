@@ -25,9 +25,11 @@ var (
 type cacheControlKey string
 
 var (
-	cacheControlKeyMaxAge  = cacheControlKey("max-age")
-	cacheControlKeyPublic  = cacheControlKey("public")
-	cacheControlKeyPrivate = cacheControlKey("private")
+	cacheControlKeyMaxAge         = cacheControlKey("max-age")
+	cacheControlKeyPublic         = cacheControlKey("public")
+	cacheControlKeyPrivate        = cacheControlKey("private")
+	cacheControlKeyNoCache        = cacheControlKey("no-cache")
+	cacheControlKeyMustRevalidate = cacheControlKey("must-revalidate")
 )
 
 type CacheControl map[cacheControlKey]string
@@ -44,6 +46,11 @@ func (c CacheControl) MaxAge() (int, error) {
 	return maxAge, nil
 }
 
+func (c CacheControl) MustRevalidate() bool {
+	_, ok := c[cacheControlKeyMustRevalidate]
+	return ok
+}
+
 func (c CacheControl) Public() bool {
 	_, ok := c[cacheControlKeyPublic]
 	return ok
@@ -51,6 +58,11 @@ func (c CacheControl) Public() bool {
 
 func (c CacheControl) Private() bool {
 	_, ok := c[cacheControlKeyPrivate]
+	return ok
+}
+
+func (c CacheControl) NoCache() bool {
+	_, ok := c[cacheControlKeyNoCache]
 	return ok
 }
 

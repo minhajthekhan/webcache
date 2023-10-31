@@ -5,7 +5,6 @@ import "net/http"
 type HTTPCache interface {
 	Get(r *http.Request) (*http.Response, bool)
 	Set(r *http.Request, response *http.Response)
-	IsCachable(r *http.Request) bool
 }
 
 type httpCache struct {
@@ -24,11 +23,6 @@ func (c *httpCache) Get(r *http.Request) (*http.Response, bool) {
 func (c *httpCache) Set(r *http.Request, response *http.Response) {
 	cacheKey := buildCacheKey(r)
 	c.cache.Set(cacheKey, response)
-}
-
-func (c *httpCache) IsCachable(r *http.Request) bool {
-	cc := newCacheControl(r.Header)
-	return !cc.Private()
 }
 
 func isCached(r *http.Response) bool {

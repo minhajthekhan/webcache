@@ -14,6 +14,7 @@ type cache struct {
 type Cache interface {
 	Get(key cacheKey) (*http.Response, bool)
 	Set(key cacheKey, response *http.Response)
+	Delete(key cacheKey)
 }
 
 func NewCache() Cache {
@@ -30,6 +31,10 @@ func (c *cache) Get(key cacheKey) (*http.Response, bool) {
 
 func (c *cache) Set(key cacheKey, response *http.Response) {
 	c.store.Store(key, response)
+}
+
+func (c *cache) Delete(key cacheKey) {
+	c.store.Delete(key)
 }
 
 type cacheKey string

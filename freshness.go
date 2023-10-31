@@ -77,19 +77,23 @@ type freshnessChecker interface {
 }
 
 // Steps to check the freshness of a response:
-// 1. check if the response is fresh based on age and max-age
-// 2. check if the response is fresh based on max-age
-// 3. check if the response is fresh based on expires
-// 4. if none of the above, the response is stale
+// 1. check if the response is cachable
+// 2. check if the response is fresh based on age and max-age
+// 3. check if the response is fresh based on max-age
+// 4. check if the response is fresh based on expires
+// 5. if none of the above, the response is stale
 func newFreshnerChecker(clock Clock) freshnessChecker {
-	return ageFreshnessChecker{
-		maxAgeFreshnessChecker{
-			next: expireFreshnessChecker{
-				transparentFreshness{},
+	return noCacheFreshness{
+		ageFreshnessChecker{
+			maxAgeFreshnessChecker{
+				next: expireFreshnessChecker{
+					transparentFreshness{},
+				},
+				clock: clock,
 			},
-			clock: clock,
 		},
 	}
+
 }
 
 type maxAgeFreshnessChecker struct {
@@ -134,7 +138,6 @@ type ageFreshnessChecker struct {
 }
 
 func (c ageFreshnessChecker) Freshness(ctx context.Context, header http.Header, cacheControlHeader CacheControl) (Freshness, error) {
-
 	maxAge, err := cacheControlHeader.MaxAge()
 	if err != nil {
 		return c.next.Freshness(ctx, header, cacheControlHeader)
@@ -146,6 +149,29 @@ func (c ageFreshnessChecker) Freshness(ctx context.Context, header http.Header, 
 	}
 
 	return freshnessFromAge(age, maxAge), nil
+}
+
+type noCacheFreshness struct {
+	next freshnessChecker
+}
+
+// https://developer.mozilla.org/en-US/docs/Web/HTTP/Caching#force_revalidation
+func (c noCacheFreshness) Freshness(ctx context.Context, header http.Header, cacheControlHeader CacheControl) (Freshness, error) {
+	if cacheControlHeader.NoCache() {
+		return FreshnesTransparent, nil
+	}
+
+	maxAge, err := cacheControlHeader.MaxAge()
+	if err != nil {
+		return c.next.Freshness(ctx, header, cacheControlHeader)
+	}
+
+	mustRevalidate := cacheControlHeader.MustRevalidate()
+	if maxAge == 0 && mustRevalidate {
+		return FreshnesTransparent, nil
+	}
+
+	return c.next.Freshness(ctx, header, cacheControlHeader)
 }
 
 type transparentFreshness struct{}

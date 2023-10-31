@@ -62,7 +62,7 @@ func (t *Transport) RoundTrip(r *http.Request) (*http.Response, error) {
 				return response, nil
 			}
 
-			// if the response is not cached, we update the cache
+			// if the response is not cached, we update the cache only if the caching is allowed
 			// because the response is freshly recieved from the origin
 			t.cache.Set(r, response)
 			return response, nil
