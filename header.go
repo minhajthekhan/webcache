@@ -15,6 +15,8 @@ var (
 	ErrorInvalidAge  = errors.New("invalid age")
 	ErrorAgeNotFound = errors.New("age not found")
 
+	ErrEtagNotFound = errors.New("etag not found")
+
 	ErrorInvalidResponseDate = errors.New("invalid response date")
 	ErrorInvalidExpireDate   = errors.New("invalid expire date")
 	ErrInvalidLastModified   = errors.New("invalid last modified date")
@@ -92,9 +94,23 @@ func timeFromHeader(h http.Header, key string) (time.Time, error) {
 	return v, nil
 }
 
+func etagFromHeader(h http.Header) (string, error) {
+	etag := strings.TrimSpace(h.Get("Etag"))
+	if etag == "" {
+		return "", ErrEtagNotFound
+	}
+	return etag, nil
+}
+
 func withIFModifiedSinceHeader(h http.Header, lastModified time.Time) http.Header {
 	headers := h.Clone()
 	headers.Set("If-Modified-Since", lastModified.Format(http.TimeFormat))
+	return headers
+}
+
+func withIfNoneMatchHeader(h http.Header, etag string) http.Header {
+	headers := h.Clone()
+	headers.Set("If-None-Match", etag)
 	return headers
 }
 

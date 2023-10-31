@@ -79,7 +79,7 @@ func TestAgeFromHeader(t *testing.T) {
 	assert.Equal(t, 100, age)
 }
 
-func TestLastModifiedHear(t *testing.T) {
+func TestLastModifiedHeader(t *testing.T) {
 
 	_, err := lastModifiedFromHeader(http.Header{"Age": []string{"abc"}})
 	assert.Error(t, err)
@@ -87,6 +87,18 @@ func TestLastModifiedHear(t *testing.T) {
 	lastMod, err := lastModifiedFromHeader(http.Header{"Last-Modified": []string{time.Now().Format(http.TimeFormat)}})
 	assert.NoError(t, err)
 	assert.Equal(t, time.Now().Format(http.TimeFormat), lastMod.Format(http.TimeFormat))
+}
+
+func TestEtagFromHeader(t *testing.T) {
+	_, err := etagFromHeader(http.Header{})
+	assert.Error(t, err)
+
+	_, err = etagFromHeader(http.Header{"Etag": []string{}})
+	assert.Error(t, err)
+
+	etag, err := etagFromHeader(http.Header{"Etag": []string{"abc"}})
+	assert.NoError(t, err)
+	assert.Equal(t, "abc", etag)
 }
 
 func TestCacheControl(t *testing.T) {
