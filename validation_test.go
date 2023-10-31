@@ -192,7 +192,7 @@ func (m *mockRoundTripper) RoundTrip(r *http.Request) (*http.Response, error) {
 		assert.Equal(m.testingT, m.ifNoneMatchValue, r.Header.Get("If-None-Match"))
 	}
 	return &http.Response{
-		StatusCode: http.StatusNotModified,
-		Body:       io.NopCloser(bytes.NewReader([]byte(""))),
+		StatusCode: m.statusCode,
+		Body:       m.body,
 	}, nil
 }
