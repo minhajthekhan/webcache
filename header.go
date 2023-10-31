@@ -17,6 +17,7 @@ var (
 
 	ErrorInvalidResponseDate = errors.New("invalid response date")
 	ErrorInvalidExpireDate   = errors.New("invalid expire date")
+	ErrInvalidLastModified   = errors.New("invalid last modified date")
 )
 
 type cacheControlKey string
@@ -75,12 +76,32 @@ func dateFromHeader(h http.Header) (time.Time, error) {
 	return v, nil
 }
 
+func lastModifiedFromHeader(h http.Header) (time.Time, error) {
+	v, err := timeFromHeader(h, "Last-Modified")
+	if err != nil {
+		return time.Time{}, ErrInvalidLastModified
+	}
+	return v, nil
+}
+
 func timeFromHeader(h http.Header, key string) (time.Time, error) {
 	v, err := http.ParseTime(h.Get(key))
 	if err != nil {
 		return time.Time{}, err
 	}
 	return v, nil
+}
+
+func withIFModifiedSinceHeader(h http.Header, lastModified time.Time) http.Header {
+	headers := h.Clone()
+	headers.Set("If-Modified-Since", lastModified.Format(http.TimeFormat))
+	return headers
+}
+
+func withCacheHitHeader(h http.Header) http.Header {
+	headers := h.Clone()
+	headers.Set("X-Cache", "HIT")
+	return headers
 }
 
 func newCacheControl(h http.Header) CacheControl {

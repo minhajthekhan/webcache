@@ -30,7 +30,7 @@ func (c *httpCacheRoundTripper) RoundTrip(r *http.Request) (*http.Response, erro
 			return nil, err
 		}
 		if freshness == FreshnessFresh {
-			response.Header.Set("X-Cache", "HIT")
+			response.Header = withCacheHitHeader(response.Header)
 			return response, nil
 		}
 	}

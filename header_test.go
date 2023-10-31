@@ -79,6 +79,16 @@ func TestAgeFromHeader(t *testing.T) {
 	assert.Equal(t, 100, age)
 }
 
+func TestLastModifiedHear(t *testing.T) {
+
+	_, err := lastModifiedFromHeader(http.Header{"Age": []string{"abc"}})
+	assert.Error(t, err)
+
+	lastMod, err := lastModifiedFromHeader(http.Header{"Last-Modified": []string{time.Now().Format(http.TimeFormat)}})
+	assert.NoError(t, err)
+	assert.Equal(t, time.Now().Format(http.TimeFormat), lastMod.Format(http.TimeFormat))
+}
+
 func TestCacheControl(t *testing.T) {
 	header := make(http.Header)
 	header.Add("Cache-Control", "max-age=100, public")
