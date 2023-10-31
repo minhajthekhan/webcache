@@ -26,4 +26,6 @@ func TestTransportIfRequestExistsInCache(t *testing.T) {
 	assert.Equal(t, "HIT", response.Header.Get("X-Cache"))
 }
 
-// TODO:: add tests for freshness
+// TODO:: add tests for transparent freshness
+// TODO:: add test for stale freshness when the response was not modified and can be re-used
+// TODO:: add test for stale freshness when the response was modified and can not be re-used
