@@ -29,6 +29,7 @@ var (
 	cacheControlKeyPublic         = cacheControlKey("public")
 	cacheControlKeyPrivate        = cacheControlKey("private")
 	cacheControlKeyNoCache        = cacheControlKey("no-cache")
+	cacheControlKeyNoStore        = cacheControlKey("no-store")
 	cacheControlKeyMustRevalidate = cacheControlKey("must-revalidate")
 )
 
@@ -63,6 +64,11 @@ func (c CacheControl) Private() bool {
 
 func (c CacheControl) NoCache() bool {
 	_, ok := c[cacheControlKeyNoCache]
+	return ok
+}
+
+func (c CacheControl) NoStore() bool {
+	_, ok := c[cacheControlKeyNoStore]
 	return ok
 }
 

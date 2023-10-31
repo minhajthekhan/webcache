@@ -37,10 +37,10 @@ func (t *Transport) RoundTrip(r *http.Request) (*http.Response, error) {
 	response, ok := t.cache.Get(r)
 	// if it does exist in the cache
 	if ok {
-		cacheControlHeaders := newCacheControl(response.Header)
+		cacheControl := newCacheControl(response.Header)
 
 		// we check if the response is still fresh, if it is, we return it
-		freshness, err := t.freshnessChecker.Freshness(ctx, response.Header, cacheControlHeaders)
+		freshness, err := t.freshnessChecker.Freshness(ctx, response.Header, cacheControl)
 		if err != nil {
 			return nil, err
 		}
@@ -57,13 +57,19 @@ func (t *Transport) RoundTrip(r *http.Request) (*http.Response, error) {
 			if err != nil {
 				return nil, err
 			}
+
+			// if caching is not allowed, we delete the response from the cache
+			if cacheControl.NoStore() {
+				t.cache.Delete(r)
+				return response, nil
+			}
+
 			// if the validator returned a cached response, we return it
 			if isCached(response) {
 				return response, nil
 			}
 
-			// if the response is not cached, we update the cache only if the caching is allowed
-			// because the response is freshly recieved from the origin
+			// otherwise, we cache the response and return it
 			t.cache.Set(r, response)
 			return response, nil
 

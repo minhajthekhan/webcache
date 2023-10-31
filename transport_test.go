@@ -110,3 +110,35 @@ func TestTransportIfRequestIsStaleWithEtagChanged(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "", response.Header.Get("X-Cache"))
 }
+
+func TestTransportShouldNotCacheIfNoStoreCacheControlHeader(t *testing.T) {
+	cache := NewCache()
+	headers := make(http.Header)
+	headers.Add("Cache-Control", "max-age=0, no-store")
+	headers.Add("Date", time.Now().Add(-1*time.Minute).Format(http.TimeFormat))
+	etag := "123"
+	headers.Add("Etag", etag)
+
+	mockRt := &mockRoundTripper{
+		testingT:          t,
+		statusCode:        http.StatusNotModified,
+		body:              io.NopCloser(bytes.NewReader([]byte(""))),
+		assertIfNoneMatch: true,
+		ifNoneMatchValue:  "123",
+	}
+
+	cachedResponse := http.Response{Header: headers, StatusCode: http.StatusOK}
+	r, err := http.NewRequest(http.MethodGet, "http://example.com", nil)
+	assert.NoError(t, err)
+
+	cache.Set(buildCacheKey(r), &cachedResponse)
+	rt := NewTransport(cache, mockRt, WithClock(NewClock()))
+
+	response, err := rt.RoundTrip(r)
+	assert.NoError(t, err)
+	assert.Equal(t, "HIT", response.Header.Get("X-Cache"))
+
+	// there should be no cache entry because of the no-store directive
+	_, ok := cache.Get(buildCacheKey(r))
+	assert.False(t, ok)
+}

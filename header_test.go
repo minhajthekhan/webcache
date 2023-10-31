@@ -129,4 +129,9 @@ func TestCacheControl(t *testing.T) {
 	cc = newCacheControl(header)
 	assert.True(t, cc.MustRevalidate())
 
+	header = make(http.Header)
+	header.Add("Cache-Control", "max-age=100, must-revalidate, no-store")
+	cc = newCacheControl(header)
+	assert.True(t, cc.NoStore())
+
 }
