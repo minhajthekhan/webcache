@@ -9,10 +9,10 @@ type HTTPCache interface {
 }
 
 type httpCache struct {
-	cache Cache
+	cache Cache[cacheKey, http.Response]
 }
 
-func NewHTTPCache(cache Cache) HTTPCache {
+func NewHTTPCache(cache Cache[cacheKey, http.Response]) HTTPCache {
 	return &httpCache{cache: cache}
 }
 

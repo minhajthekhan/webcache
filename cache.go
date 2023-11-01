@@ -11,13 +11,13 @@ type cache struct {
 	store sync.Map
 }
 
-type Cache interface {
-	Get(key cacheKey) (*http.Response, bool)
-	Set(key cacheKey, response *http.Response)
-	Delete(key cacheKey)
+type Cache[K comparable, V any] interface {
+	Get(key K) (*V, bool)
+	Set(key K, response *V)
+	Delete(key K)
 }
 
-func NewCache() Cache {
+func NewCache() Cache[cacheKey, http.Response] {
 	return &cache{}
 }
 
