@@ -1,6 +1,11 @@
 package webcache
 
-import "net/http"
+import (
+	"bufio"
+	"bytes"
+	"net/http"
+	"net/http/httputil"
+)
 
 type HTTPCache interface {
 	Get(r *http.Request) (*http.Response, bool)
@@ -9,26 +14,39 @@ type HTTPCache interface {
 }
 
 type httpCache struct {
-	cache Cache[cacheKey, http.Response]
+	cache Cache[string, []byte]
 }
 
-func NewHTTPCache(cache Cache[cacheKey, http.Response]) HTTPCache {
+func NewHTTPCache(cache Cache[string, []byte]) HTTPCache {
 	return &httpCache{cache: cache}
 }
 
 func (c *httpCache) Get(r *http.Request) (*http.Response, bool) {
 	cacheKey := buildCacheKey(r)
-	return c.cache.Get(cacheKey)
+	if cachedVal, ok := c.cache.Get(cacheKey.String()); ok {
+		b := bytes.NewBuffer(cachedVal)
+		v, err := http.ReadResponse(bufio.NewReader(b), nil)
+		if err != nil {
+			return nil, false
+		}
+		return v, true
+	}
+	return nil, false
 }
 
 func (c *httpCache) Set(r *http.Request, response *http.Response) {
+	b, err := httputil.DumpResponse(response, true)
+	if err != nil {
+		return
+	}
+
 	cacheKey := buildCacheKey(r)
-	c.cache.Set(cacheKey, response)
+	c.cache.Set(cacheKey.String(), b)
 }
 
 func (c *httpCache) Delete(r *http.Request) {
 	cacheKey := buildCacheKey(r)
-	c.cache.Delete(cacheKey)
+	c.cache.Delete(cacheKey.String())
 }
 
 func isCached(r *http.Response) bool {

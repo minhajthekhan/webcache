@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io"
 	"net/http"
+	"net/http/httputil"
 	"testing"
 	"time"
 
@@ -14,10 +15,12 @@ func TestTransportIfRequestExistsInCache(t *testing.T) {
 	resp := http.Response{Header: make(http.Header), StatusCode: http.StatusOK}
 	resp.Header.Set("Cache-Control", "max-age=120")
 	resp.Header.Set("Date", time.Now().Format(time.RFC850))
-
+	responseBytes, err := httputil.DumpResponse(&resp, true)
+	assert.NoError(t, err)
 	cache := NewCache()
 	r, err := http.NewRequest(http.MethodGet, "http://example.com", nil)
-	cache.Set(buildCacheKey(r), &resp)
+
+	cache.Set(buildCacheKey(r).String(), responseBytes)
 
 	roundTripper := NewTransport(cache, http.DefaultTransport, WithClock(NewClock()))
 	assert.NoError(t, err)
@@ -45,10 +48,13 @@ func TestTransportIfRequestIsStaleWithLastModified(t *testing.T) {
 	}
 
 	cachedResponse := http.Response{Header: headers, StatusCode: http.StatusOK}
+	responseBytes, err := httputil.DumpResponse(&cachedResponse, true)
+	assert.NoError(t, err)
+
 	r, err := http.NewRequest(http.MethodGet, "http://example.com", nil)
 	assert.NoError(t, err)
 
-	cache.Set(buildCacheKey(r), &cachedResponse)
+	cache.Set(buildCacheKey(r).String(), responseBytes)
 	rt := NewTransport(cache, mockRt, WithClock(NewClock()))
 
 	response, err := rt.RoundTrip(r)
@@ -73,10 +79,13 @@ func TestTransportIfRequestIsStaleWithEtag(t *testing.T) {
 	}
 
 	cachedResponse := http.Response{Header: headers, StatusCode: http.StatusOK}
+	responseBytes, err := httputil.DumpResponse(&cachedResponse, true)
+	assert.NoError(t, err)
+
 	r, err := http.NewRequest(http.MethodGet, "http://example.com", nil)
 	assert.NoError(t, err)
 
-	cache.Set(buildCacheKey(r), &cachedResponse)
+	cache.Set(buildCacheKey(r).String(), responseBytes)
 	rt := NewTransport(cache, mockRt, WithClock(NewClock()))
 
 	response, err := rt.RoundTrip(r)
@@ -101,10 +110,13 @@ func TestTransportIfRequestIsStaleWithEtagChanged(t *testing.T) {
 	}
 
 	cachedResponse := http.Response{Header: headers, StatusCode: http.StatusOK}
+	responseBytes, err := httputil.DumpResponse(&cachedResponse, true)
+	assert.NoError(t, err)
+
 	r, err := http.NewRequest(http.MethodGet, "http://example.com", nil)
 	assert.NoError(t, err)
 
-	cache.Set(buildCacheKey(r), &cachedResponse)
+	cache.Set(buildCacheKey(r).String(), responseBytes)
 	rt := NewTransport(cache, mockRt, WithClock(NewClock()))
 	response, err := rt.RoundTrip(r)
 	assert.NoError(t, err)
@@ -128,10 +140,13 @@ func TestTransportShouldNotCacheIfNoStoreCacheControlHeader(t *testing.T) {
 	}
 
 	cachedResponse := http.Response{Header: headers, StatusCode: http.StatusOK}
+	responseBytes, err := httputil.DumpResponse(&cachedResponse, true)
+	assert.NoError(t, err)
+
 	r, err := http.NewRequest(http.MethodGet, "http://example.com", nil)
 	assert.NoError(t, err)
 
-	cache.Set(buildCacheKey(r), &cachedResponse)
+	cache.Set(buildCacheKey(r).String(), responseBytes)
 	rt := NewTransport(cache, mockRt, WithClock(NewClock()))
 
 	response, err := rt.RoundTrip(r)
@@ -139,6 +154,6 @@ func TestTransportShouldNotCacheIfNoStoreCacheControlHeader(t *testing.T) {
 	assert.Equal(t, "HIT", response.Header.Get("X-Cache"))
 
 	// there should be no cache entry because of the no-store directive
-	_, ok := cache.Get(buildCacheKey(r))
+	_, ok := cache.Get(buildCacheKey(r).String())
 	assert.False(t, ok)
 }

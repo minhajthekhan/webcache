@@ -12,28 +12,28 @@ type cache struct {
 }
 
 type Cache[K comparable, V any] interface {
-	Get(key K) (*V, bool)
-	Set(key K, response *V)
+	Get(key K) (V, bool)
+	Set(key K, response V)
 	Delete(key K)
 }
 
-func NewCache() Cache[cacheKey, http.Response] {
+func NewCache() Cache[string, []byte] {
 	return &cache{}
 }
 
-func (c *cache) Get(key cacheKey) (*http.Response, bool) {
+func (c *cache) Get(key string) ([]byte, bool) {
 	v, ok := c.store.Load(key)
 	if !ok {
 		return nil, false
 	}
-	return v.(*http.Response), true
+	return v.([]byte), true
 }
 
-func (c *cache) Set(key cacheKey, response *http.Response) {
-	c.store.Store(key, response)
+func (c *cache) Set(key string, value []byte) {
+	c.store.Store(key, value)
 }
 
-func (c *cache) Delete(key cacheKey) {
+func (c *cache) Delete(key string) {
 	c.store.Delete(key)
 }
 

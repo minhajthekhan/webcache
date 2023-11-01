@@ -20,16 +20,16 @@ func TestCache(t *testing.T) {
 	r.Header.Add("Vary", "Accept, Accept-Language")
 
 	key := buildCacheKey(r)
-	resp, ok := c.Get(key)
+	resp, ok := c.Get(key.String())
 	assert.False(t, ok)
 	assert.Nil(t, resp)
 
-	c.Set(key, &http.Response{StatusCode: http.StatusOK})
-	resp, ok = c.Get(key)
+	c.Set(key.String(), []byte("hello world"))
+	resp, ok = c.Get(key.String())
 	assert.True(t, ok)
 	assert.NotNil(t, resp)
 
-	c.Delete(key)
-	_, ok = c.Get(key)
+	c.Delete(key.String())
+	_, ok = c.Get(key.String())
 	assert.False(t, ok)
 }

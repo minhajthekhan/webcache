@@ -21,7 +21,7 @@ func WithClock(c Clock) TransportOption {
 }
 
 // NewRoundTripper
-func NewTransport(cache Cache[cacheKey, http.Response], rt http.RoundTripper, opts ...TransportOption) *Transport {
+func NewTransport(cache Cache[string, []byte], rt http.RoundTripper, opts ...TransportOption) *Transport {
 	t := &Transport{
 		cache: NewHTTPCache(cache),
 		rt:    rt,
@@ -41,6 +41,7 @@ func (t *Transport) RoundTrip(r *http.Request) (*http.Response, error) {
 	if ok {
 		return t.handleCachedResponse(ctx, response, r)
 	}
+
 	return nil, nil
 }
 
