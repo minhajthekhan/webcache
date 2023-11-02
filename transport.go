@@ -50,7 +50,7 @@ func (t *Transport) RoundTrip(r *http.Request) (*http.Response, error) {
 		return response, nil
 	}
 
-	if cacheControl.NoStore() || cacheControl.NoStoreEquivalentHeaders() {
+	if cacheControl.NoStore() || cacheControl.NoCacheEquivalentHeaders() || cacheControl.NoCache() {
 		return response, nil
 	}
 

@@ -73,7 +73,7 @@ func (c CacheControl) NoStore() bool {
 
 }
 
-func (c CacheControl) NoStoreEquivalentHeaders() bool {
+func (c CacheControl) NoCacheEquivalentHeaders() bool {
 	maxAge, err := c.MaxAge()
 	if err != nil {
 		return false
