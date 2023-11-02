@@ -10,6 +10,8 @@ type Transport struct {
 	cache            HTTPCache
 	rt               http.RoundTripper
 	freshnessChecker freshnessChecker
+
+	shouldCachePrivateResponses bool
 }
 
 type TransportOption func(*Transport)
@@ -17,6 +19,12 @@ type TransportOption func(*Transport)
 func WithClock(c Clock) TransportOption {
 	return func(t *Transport) {
 		t.clock = c
+	}
+}
+
+func CachePrivateResponse(v bool) TransportOption {
+	return func(t *Transport) {
+		t.shouldCachePrivateResponses = v
 	}
 }
 
@@ -50,10 +58,22 @@ func (t *Transport) RoundTrip(r *http.Request) (*http.Response, error) {
 		return response, nil
 	}
 
-	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Caching#force_revalidation
-	if cacheControl.NoStore() || cacheControl.NoCacheEquivalentHeaders() || cacheControl.NoCache() {
+	// The no-store response directive indicates that any caches of any kind (private or shared) should not store this response.
+	if cacheControl.NoStore() {
 		return response, nil
 	}
+
+	if cacheControl.NoCacheEquivalentHeaders() || cacheControl.NoCache() {
+		return response, nil
+	}
+
+	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Caching#public_vs._private_caches
+	// The private response directive indicates that the response can be stored only in a private cache
+	// (e.g. local caches in browsers).
+	if !t.shouldCachePrivateResponses && cacheControl.Private() {
+		return response, nil
+	}
+
 	t.cache.Set(r, response)
 	return response, nil
 }
