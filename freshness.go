@@ -167,13 +167,7 @@ func (c noCacheFreshness) Freshness(ctx context.Context, header http.Header, cac
 		return FreshnessStale, nil
 	}
 
-	maxAge, err := cacheControlHeader.MaxAge()
-	if err != nil {
-		return c.next.Freshness(ctx, header, cacheControlHeader)
-	}
-
-	mustRevalidate := cacheControlHeader.MustRevalidate()
-	if maxAge == 0 && mustRevalidate {
+	if cacheControlHeader.NoCacheEquivalent() {
 		return FreshnessStale, nil
 	}
 
