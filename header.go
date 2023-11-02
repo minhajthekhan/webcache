@@ -70,6 +70,19 @@ func (c CacheControl) NoCache() bool {
 func (c CacheControl) NoStore() bool {
 	_, ok := c[cacheControlKeyNoStore]
 	return ok
+
+}
+
+func (c CacheControl) NoStoreEquivalentHeaders() bool {
+	maxAge, err := c.MaxAge()
+	if err != nil {
+		return false
+	}
+	mustRevalidate := c.MustRevalidate()
+	if maxAge == 0 && mustRevalidate {
+		return true
+	}
+	return false
 }
 
 func ageFromHeader(h http.Header) (int, error) {
@@ -157,6 +170,10 @@ func newCacheControl(h http.Header) CacheControl {
 		}
 	}
 	return cc
+}
+
+func (c CacheControl) IsPresent() bool {
+	return len(c) > 0
 }
 func splitCacheControl(s string) []string {
 	return strings.Split(strings.TrimSpace(s), ",")

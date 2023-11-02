@@ -37,15 +37,27 @@ func NewTransport(cache Cache[string, []byte], rt http.RoundTripper, opts ...Tra
 func (t *Transport) RoundTrip(r *http.Request) (*http.Response, error) {
 	// check if we have this request in the cache
 	ctx := r.Context()
-	response, ok := t.cache.Get(r)
-	if ok {
-		return t.handleCachedResponse(ctx, response, r)
+	if response, ok := t.cache.Get(r); ok {
+		return t.roundTripWithCachedResponse(ctx, response, r)
+	}
+
+	response, err := t.rt.RoundTrip(r)
+	if err != nil {
+		return nil, err
+	}
+	cacheControl := newCacheControl(response.Header)
+	if !cacheControl.IsPresent() {
+		return response, nil
+	}
+
+	if cacheControl.NoStore() || cacheControl.NoStoreEquivalentHeaders() {
+		return response, nil
 	}
 
 	return nil, nil
 }
 
-func (t *Transport) handleCachedResponse(ctx context.Context, response *http.Response, r *http.Request) (*http.Response, error) {
+func (t *Transport) roundTripWithCachedResponse(ctx context.Context, response *http.Response, r *http.Request) (*http.Response, error) {
 	cacheControl := newCacheControl(response.Header)
 
 	// we check if the response is still fresh, if it is, we return it

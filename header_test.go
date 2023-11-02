@@ -135,3 +135,9 @@ func TestCacheControl(t *testing.T) {
 	assert.True(t, cc.NoStore())
 
 }
+
+func TestCacheControlPresent(t *testing.T) {
+	r, err := http.NewRequest(http.MethodGet, "https://google.com", nil)
+	assert.NoError(t, err)
+	assert.False(t, newCacheControl(r.Header).IsPresent())
+}

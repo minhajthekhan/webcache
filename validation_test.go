@@ -181,6 +181,8 @@ type mockRoundTripper struct {
 
 	assertIfNoneMatch bool
 	ifNoneMatchValue  string
+
+	response *http.Response
 }
 
 func (m *mockRoundTripper) RoundTrip(r *http.Request) (*http.Response, error) {
@@ -190,6 +192,9 @@ func (m *mockRoundTripper) RoundTrip(r *http.Request) (*http.Response, error) {
 	}
 	if m.assertIfNoneMatch {
 		assert.Equal(m.testingT, m.ifNoneMatchValue, r.Header.Get("If-None-Match"))
+	}
+	if m.response != nil {
+		return m.response, nil
 	}
 	return &http.Response{
 		StatusCode: m.statusCode,

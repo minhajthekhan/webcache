@@ -157,3 +157,42 @@ func TestTransportShouldNotCacheIfNoStoreCacheControlHeader(t *testing.T) {
 	_, ok := cache.Get(buildCacheKey(r).String())
 	assert.False(t, ok)
 }
+
+func TestRoundTripNoCacheStorageIfNoCacheControl(t *testing.T) {
+	r, err := http.NewRequest(http.MethodGet, "http://example.com", nil)
+	assert.NoError(t, err)
+	cache := NewCache()
+	transport := NewTransport(cache, &mockRoundTripper{
+		response: &http.Response{
+			StatusCode: http.StatusOK,
+			Header:     make(http.Header),
+			Body:       io.NopCloser(bytes.NewReader([]byte(""))),
+		},
+	})
+	response, err := transport.RoundTrip(r)
+	assert.NoError(t, err)
+	assert.False(t, isCached(response))
+	_, ok := cache.Get(buildCacheKey(r).String())
+	assert.False(t, ok)
+}
+
+func TestRoundTripNoCacheStorageIfCacheControlWithNoStore(t *testing.T) {
+	r, err := http.NewRequest(http.MethodGet, "http://example.com", nil)
+	assert.NoError(t, err)
+
+	responseHeaders := make(http.Header)
+	responseHeaders.Set("Cache-Control", "no-store")
+	cache := NewCache()
+	transport := NewTransport(cache, &mockRoundTripper{
+		response: &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       io.NopCloser(bytes.NewReader([]byte(""))),
+			Header:     responseHeaders,
+		},
+	})
+	response, err := transport.RoundTrip(r)
+	assert.NoError(t, err)
+	assert.False(t, isCached(response))
+	_, ok := cache.Get(buildCacheKey(r).String())
+	assert.False(t, ok)
+}
