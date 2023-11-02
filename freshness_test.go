@@ -76,7 +76,7 @@ func TestFreshness(t *testing.T) {
 	checker = newFreshnerChecker(NewClock())
 	freshness, err = checker.Freshness(ctx, headers, cacheControl)
 	assert.NoError(t, err)
-	assert.Equal(t, FreshnesTransparent, freshness)
+	assert.Equal(t, FreshnessStale, freshness)
 
 	headers = make(http.Header)
 	headers.Add("Date", time.Now().Add(-1*time.Minute).Format(time.RFC850))

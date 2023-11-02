@@ -156,9 +156,15 @@ type noCacheFreshness struct {
 }
 
 // https://developer.mozilla.org/en-US/docs/Web/HTTP/Caching#force_revalidation
+// The no-cache request directive asks caches to validate the response with the origin server before reuse.
+// allow the response to be cached, but revalidate it before serving it to subsequent requests.
+// Usually, this is ideal for resources that don't change frequently,
+// but that must always be up-to-date (eg. legal documents that might be updated from time to time).
 func (c noCacheFreshness) Freshness(ctx context.Context, header http.Header, cacheControlHeader CacheControl) (Freshness, error) {
 	if cacheControlHeader.NoCache() {
-		return FreshnesTransparent, nil
+		// if the no-cache headers are present, we must always revalidate the response
+		// hence, we mark the current response as stale so that it can be revalidated
+		return FreshnessStale, nil
 	}
 
 	maxAge, err := cacheControlHeader.MaxAge()
