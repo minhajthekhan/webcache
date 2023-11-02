@@ -238,3 +238,29 @@ func TestRoundTripNoCacheStorageIfCacheControlWithNoCacheEquivalent(t *testing.T
 	_, ok := cache.Get(buildCacheKey(r).String())
 	assert.False(t, ok)
 }
+
+func TestRoundTripNoCacheStorageIfCacheControlWithMaxAge(t *testing.T) {
+	r, err := http.NewRequest(http.MethodGet, "http://example.com", nil)
+	assert.NoError(t, err)
+
+	responseHeaders := make(http.Header)
+	responseHeaders.Set("Cache-Control", "max-age=100")
+	responseHeaders.Set("Date", time.Now().Add(-1*time.Minute).Format(http.TimeFormat))
+	cache := NewCache()
+	transport := NewTransport(cache, &mockRoundTripper{
+		response: &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       io.NopCloser(bytes.NewReader([]byte(""))),
+			Header:     responseHeaders,
+		},
+	})
+	response, err := transport.RoundTrip(r)
+	assert.NoError(t, err)
+	assert.False(t, isCached(response))
+	_, ok := cache.Get(buildCacheKey(r).String())
+	assert.True(t, ok)
+
+	response, err = transport.RoundTrip(r)
+	assert.NoError(t, err)
+	assert.True(t, isCached(response))
+}

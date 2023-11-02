@@ -50,11 +50,12 @@ func (t *Transport) RoundTrip(r *http.Request) (*http.Response, error) {
 		return response, nil
 	}
 
+	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Caching#force_revalidation
 	if cacheControl.NoStore() || cacheControl.NoCacheEquivalentHeaders() || cacheControl.NoCache() {
 		return response, nil
 	}
-
-	return nil, nil
+	t.cache.Set(r, response)
+	return response, nil
 }
 
 func (t *Transport) roundTripWithCachedResponse(ctx context.Context, response *http.Response, r *http.Request) (*http.Response, error) {

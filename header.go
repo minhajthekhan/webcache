@@ -73,6 +73,8 @@ func (c CacheControl) NoStore() bool {
 
 }
 
+// NoCacheEquivalentHeaders
+// https://developer.mozilla.org/en-US/docs/Web/HTTP/Caching#force_revalidation
 func (c CacheControl) NoCacheEquivalentHeaders() bool {
 	maxAge, err := c.MaxAge()
 	if err != nil {
